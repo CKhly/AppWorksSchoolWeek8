@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-backend
+  template:
+    metadata:
+      labels:
+        app: node-backend
+    spec:
+      containers:
+      - name: node-backend
+        image: lee920024/node-backend:v1
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 6200
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-backend
+  labels:
+    name: node-backend
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 6200
+      targetPort: 6200
+      protocol: TCP
+  selector:
+    app: node-backend
