@@ -5,7 +5,7 @@ setInterval(async()=>{
     const response = await fetch('https://tcgbusfs.blob.core.windows.net/blobyoubike/YouBikeTP.json');
     const data = await response.json();
     const stringData= JSON.stringify(data)
-    amqp.connect('amqp://localhost:30000', function(error0, connection) {
+    amqp.connect('amqp://localhost', function(error0, connection) {
         if (error0) {
             throw error0;
         }
@@ -13,7 +13,7 @@ setInterval(async()=>{
             if (error1) {
                 throw error1;
             }
-            var queue = 'task_queue';
+            var queue = 'ubikeV1_task_queue';
             var msg = stringData;
             channel.assertQueue(queue, {
                 durable: true
@@ -28,7 +28,7 @@ setInterval(async()=>{
         //     process.exit(0)
         // }, 500);
     });
-},1000)
+}, 2000)
 
 
 

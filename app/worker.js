@@ -1,33 +1,9 @@
 var amqp = require('amqplib/callback_api');
-const mongoose = require('mongoose')
-const { Schema } = mongoose;
 
-const connectDB = async () => {
-  try {
-    const conn = await mongoose.connect('mongodb://localhost:27017/test')
-    console.log('MongoDB Connected')
-  } catch (error) {
-    console.log(error)
-    process.exit(1)
-  }
-}
-connectDB();
+const { connectDB } = require('./db')
+const Station = require("./model");
 
-const stationSchema = new Schema({
-  station: String, // String is shorthand for {type: String}
-  version: String,
-  available: Number,
-  location: { 
-    type: {type: String}, 
-    cordinates: [{ lat: Number, lng: Number }]
-  },
-    //datetime type should be Date
-  datatime: { type: String, default: Date.now },
-});
-const Station = mongoose.model('Station',stationSchema);
-
-
-amqp.connect('amqp://localhost:30000', function(error0, connection) {
+amqp.connect('amqp://localhost', function(error0, connection) {
   if (error0) {
     throw error0;
   }
@@ -35,8 +11,7 @@ amqp.connect('amqp://localhost:30000', function(error0, connection) {
     if (error1) {
       throw error1;
     }
-    var queue = 'task_queue';
-
+    var queue = 'ubikeV1_task_queue';
     channel.assertQueue(queue, {
       durable: true
     });
@@ -44,8 +19,9 @@ amqp.connect('amqp://localhost:30000', function(error0, connection) {
     console.log(" [*] Waiting for messages in %s. To exit press CTRL+C", queue);
     channel.consume(queue, async function(msg) {
       console.log(" [x] Received");
+      //consume data from rabbitmq channel (ubike 1.0 & 2.0)
       const list = JSON.parse(msg.content.toString());
-      // console.log(list.retVal[]);
+      connectDB();
       const res = await Station.deleteMany({});
       console.log("delete counts: ", res.deletedCount)
       for(var station in list.retVal){
@@ -54,24 +30,22 @@ amqp.connect('amqp://localhost:30000', function(error0, connection) {
           version: "v1",
           available: list.retVal[station].sbi,
           location: {
-            type: "Point",
-            cordinate: [list.retVal[station].lat, list.retVal[station].lng]
+            coordinates: [
+              list.retVal[station].lng,
+              list.retVal[station].lat
+            ]
           },
           datatime: list.retVal[station].mday,
         })
+        //transform the data to what we want and store it to mongodb
         await stationInfo.save();
       }
-
-      //consume data from rabbitmq channel (ubike 1.0 & 2.0)
-      //transform the data to what we want and store it to mongodb
-      //   console.log(" [x] Done");
+      console.log("data insert!")
       setTimeout(function() {
         console.log(" [x] Done");
         channel.ack(msg);
       }, 1000);
     }, {
-      // manual acknowledgment mode,
-      // see ../confirms.html for details
       noAck: false
     });
   });
