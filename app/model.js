@@ -1,5 +1,6 @@
 const mongoose = require('mongoose')
 let stationSchema = new mongoose.Schema({
+    _id: Number,
     station: String,
     version: String,
     available: Number,

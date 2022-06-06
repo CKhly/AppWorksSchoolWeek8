@@ -11,7 +11,7 @@ amqp.connect('amqp://localhost', function(error0, connection) {
     if (error1) {
       throw error1;
     }
-    var queue = 'ubikeV1_task_queue';
+    var queue = 'ubikeV2_task_queue';
     channel.assertQueue(queue, {
       durable: true
     });
@@ -22,23 +22,29 @@ amqp.connect('amqp://localhost', function(error0, connection) {
       //consume data from rabbitmq channel (ubike 1.0 & 2.0)
       const list = JSON.parse(msg.content.toString());
       connectDB();
-      const res = await Station.deleteMany({});
-      console.log("delete counts: ", res.deletedCount)
-      for(var station in list.retVal){
+      for(var station of list){
         const stationInfo = new Station({
-          station: list.retVal[station].sna,
-          version: "v1",
-          available: list.retVal[station].sbi,
+          station: station.sna,
+          version: "v2",
+          available: station.sbi,
           location: {
             coordinates: [
-              list.retVal[station].lng,
-              list.retVal[station].lat
+              station.lng,
+              station.lat
             ]
           },
-          datatime: list.retVal[station].mday,
+          datatime: station.mday,
         })
+        const id = parseInt(station.sno, 10);
         //transform the data to what we want and store it to mongodb
-        await stationInfo.save();
+        Station.findOneAndUpdate({ _id: id }, { _id: id, ...stationInfo },{
+          new: true,
+          upsert: true // Make this update into an upsert
+        } ,function(error, result) {
+          if (error) {
+            console.log(error);
+          }
+        });
       }
       console.log("data insert!")
       setTimeout(function() {

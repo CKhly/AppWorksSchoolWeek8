@@ -1,6 +1,6 @@
 const express = require("express");
 const app = express();
-const port = 3000
+const port = 4000
 
 const axios = require("axios")
 const { connectDB } = require('./db')
@@ -29,7 +29,7 @@ app.get('/:address', async(req, res) => {
     ).exec((err, location)=>{
         if(err) {
             return  res.status(500).send({
-                status: flase,
+                status: false,
                 data: err
             })
         }
