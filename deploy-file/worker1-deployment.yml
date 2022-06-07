@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker1
+  labels:
+    app: worker1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: worker1
+  template:
+    metadata:
+      labels:
+        app: worker1
+    spec:
+      containers:
+      - name: worker1
+        image: lee920024/node-backend:v1
+        command: ['sh', '-c', 'node worker1.js']
+        envFrom:
+          - configMapRef:
+              name: nodejs-config
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 500m
+            memory: 512Mi
+      initContainers:
+      - name: init-rabbitmq
+        image: busybox:1.31
+        command: ['sh', '-c', 'until nc -zv $RABBITMQ_HOST $RABBITMQ_PORT; do echo waiting for myservice; sleep 2; done']
+        envFrom:
+          - configMapRef:
+              name: nodejs-config
+      - name: init-mongodb
+        image: busybox:1.31
+        command: ['sh', '-c', "until  nc -zv $MONGODB_HOST $MONGODB_PORT; do echo waiting for mydb; sleep 2; done"]
+        envFrom:
+          - configMapRef:
+              name: nodejs-config

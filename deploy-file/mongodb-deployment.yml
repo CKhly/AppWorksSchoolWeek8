@@ -1,47 +1,45 @@
-## RabbitMQ Service
+## Service
 apiVersion: v1
 kind: Service
 metadata:
-  name: rabbitmq
+  name: mongodb
   labels:
-    app: rabbitmq
+    app: mongodb
 spec:
   selector:
-    app: rabbitmq
+    app: mongodb
   type: NodePort
   ports:
-    - name: rabbitmq
-      port: 5672
-      targetPort: 5672
-      nodePort: 30001
-    - name: rabbitmq-management
-      port: 15672
-      targetPort: 15672
-      nodePort: 30002
+    - name: mongodb
+      port: 27017
+      targetPort: 27017
+      nodePort: 30003
 ---
-## RabbitMQ Deployment
+## Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: rabbitmq
+  name: mongodb
   labels:
-    app: rabbitmq
+    app: mongodb
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: rabbitmq
+      app: mongodb
   template:
     metadata:
       labels:
-        app: rabbitmq
+        app: mongodb
     spec:
       containers:
-        - name: rabbitmq
-          image: rabbitmq:3.9.18-management-alpine
+        - name: mongodb
+          image: mongo:latest
+          envFrom:
+            - configMapRef:
+                name: mongodb-config
           ports:
-            - containerPort: 5672
-            - containerPort: 15672
+            - containerPort: 27017
           resources:
             limits:
               cpu: 500m
@@ -50,18 +48,18 @@ spec:
               cpu: 500m
               memory: 512Mi
           livenessProbe:
-            initialDelaySeconds: 30
+            initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
             successThreshold: 1
             failureThreshold: 3
             tcpSocket:
-              port: 5672
+              port: 27017
           readinessProbe:
-            initialDelaySeconds: 10
+            initialDelaySeconds: 60
             periodSeconds: 10
             timeoutSeconds: 5
             successThreshold: 1
             failureThreshold: 3
             tcpSocket:
-              port: 5672
+              port: 27017
