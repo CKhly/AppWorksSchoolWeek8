@@ -1,0 +1,73 @@
+## Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: nodejs
+  labels:
+    app: nodejs
+spec:
+  selector:
+    app: nodejs
+  type: NodePort
+  ports:
+    - name: nodejs
+      port: 4000
+      targetPort: 4000
+      nodePort: 30004
+---
+## Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodejs
+  labels:
+    app: nodejs
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nodejs
+  template:
+    metadata:
+      labels:
+        app: nodejs
+    spec:
+      containers:
+        - name: nodejs
+          image: lee920024/node-backend:v1
+          command: ['sh', '-c', 'node server.js']
+          envFrom:
+            - configMapRef:
+                name: nodejs-config
+          ports:
+            - containerPort: 4000
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 500m
+              memory: 512Mi
+          livenessProbe:
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+            tcpSocket:
+              port: 4000
+          readinessProbe:
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+            tcpSocket:
+              port: 4000
+      initContainers:
+      - name: init-mongodb
+        image: busybox:1.31
+        command: ['sh', '-c', "until  nc -zv $MONGODB_HOST $MONGODB_PORT; do echo waiting for mydb; sleep 2; done"]
+        envFrom:
+          - configMapRef:
+              name: nodejs-config
