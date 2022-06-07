@@ -1,7 +1,5 @@
-FROM node:16.9.0-alpine
-WORKDIR /app
-COPY package.json ./
-RUN npm i
-COPY server.js /app/
+FROM node:lts-alpine
+COPY ./ /kube
+WORKDIR /kube
+RUN npm install
 EXPOSE 4000
-CMD ["node", "server.js"]

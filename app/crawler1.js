@@ -1,46 +1,26 @@
-const fetch = require("node-fetch");
-var amqp = require('amqplib/callback_api');
+const fetch = require("node-fetch")
+const { connectMQ } = require('./mq')
 
-setInterval(async()=>{
+async function getUbikeV1(){
     const response = await fetch('https://tcgbusfs.blob.core.windows.net/blobyoubike/YouBikeTP.json');
     const data = await response.json();
     const stringData= JSON.stringify(data)
-    amqp.connect('amqp://localhost', function(error0, connection) {
-        if (error0) {
-            throw error0;
-        }
-        connection.createChannel(function(error1, channel) {
-            if (error1) {
-                throw error1;
-            }
-            var queue = 'ubikeV1_task_queue';
-            var msg = stringData;
-            channel.assertQueue(queue, {
-                durable: true
-            });
-            channel.sendToQueue(queue, Buffer.from(msg), {
-                persistent: true
-            });
-            console.log(" [x] Sent");
-        });
-        // setTimeout(function() {
-        //     connection.close();
-        //     process.exit(0)
-        // }, 500);
+    return stringData;
+}
+async function main() {
+    const channel = await connectMQ();
+    var queue = 'ubikeV1_task_queue';
+    channel.assertQueue(queue, {
+        durable: true
     });
-}, 2000)
-
-
-
-
-// app.get("/", async (req,res)=>{
-//     const response = await fetch('https://tcgbusfs.blob.core.windows.net/blobyoubike/YouBikeTP.json');
-//     const data = await response.json();
-//     console.log(data)
-//     res.send(data)
-// })
-
-// app.listen(3000,'0.0.0.0',()=>{
-//     console.log("Listening on port 3000")
-// })
-
+    const task = async () => {
+        const msg = await getUbikeV1(); 
+        channel.sendToQueue(queue, Buffer.from(msg), {
+            persistent: true
+        });
+        console.log(" [x] Sent");
+        return
+    }
+    setInterval(()=> task(), 10000)
+}
+main();
